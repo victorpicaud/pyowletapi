@@ -1001,7 +1001,12 @@ async def initialize_and_run():
     server = await create_server()
     
     # Get port from environment or default to 8000
-    port = int(os.getenv("PORT", 8000))
+    try:
+        port = int(os.getenv("PORT", "8000"))
+    except ValueError:
+        logger.warning(f"Invalid PORT value: {os.getenv('PORT')}, using default 8000")
+        port = 8000
+    
     host = os.getenv("HOST", "0.0.0.0")
     
     logger.info(f"Starting server on {host}:{port}")
