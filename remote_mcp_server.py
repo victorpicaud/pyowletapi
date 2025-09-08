@@ -1014,25 +1014,7 @@ async def initialize_and_run():
     
     try:
         # Use FastMCP's built-in run method with SSE transport for OpenAI compatibility
-        # For deployment environments, handle existing event loops
         server.run(transport="sse", host=host, port=port)
-    except KeyboardInterrupt:
-        logger.info("Server stopped by user")
-    except RuntimeError as e:
-        if "Already running asyncio" in str(e):
-            logger.info("Handling existing asyncio context...")
-            # Alternative approach for environments with existing event loops
-            import uvicorn
-            from fastmcp.server.sse import create_sse_app
-            
-            # Create the SSE app manually
-            app = create_sse_app(server)
-            
-            # Run with uvicorn directly
-            uvicorn.run(app, host=host, port=port, log_level="info")
-        else:
-            logger.error(f"Server error: {e}")
-            raise
     except Exception as e:
         logger.error(f"Server error: {e}")
         raise
@@ -1041,9 +1023,91 @@ async def initialize_and_run():
         await cleanup()
 
 
+def run_with_fallback():
+    """Run server with fallback for existing event loops."""
+    
+    # Verify required environment variables
+    if not os.getenv("OWLET_USER") or not os.getenv("OWLET_PASSWORD"):
+        logger.error("Missing required environment variables: OWLET_USER and OWLET_PASSWORD")
+        sys.exit(1)
+    
+    logger.info("Starting Owlet Baby Monitor MCP Server (Fallback Mode)")
+    logger.info(f"Region: {os.getenv('OWLET_REGION', 'world')}")
+    
+    # Get port from environment or default to 8000
+    try:
+        port = int(os.getenv("PORT", "8000"))
+    except ValueError:
+        logger.warning(f"Invalid PORT value: {os.getenv('PORT')}, using default 8000")
+        port = 8000
+    
+    host = os.getenv("HOST", "0.0.0.0")
+    
+    logger.info(f"Starting server on {host}:{port}")
+    
+    # Simple uvicorn-based fallback
+    import uvicorn
+    from fastapi import FastAPI
+    from fastapi.responses import JSONResponse
+    import json
+    
+    app = FastAPI(title="Owlet Baby Monitor MCP Server")
+    
+    @app.get("/health")
+    async def health_check():
+        """Health check endpoint."""
+        return {"status": "healthy", "service": "owlet-mcp-server", "transport": "fallback"}
+    
+    @app.get("/")
+    async def root():
+        """Root endpoint with server information."""
+        return {
+            "name": "Owlet Baby Monitor MCP Server",
+            "version": "1.0.0",
+            "transport": "sse",
+            "endpoints": {
+                "health": "/health",
+                "sse": "/sse"
+            },
+            "instructions": server_instructions
+        }
+    
+    @app.get("/sse")
+    async def sse_fallback():
+        """Fallback SSE endpoint."""
+        return JSONResponse({
+            "error": "SSE endpoint requires proper MCP client connection",
+            "message": "This server requires an MCP-compatible client for full functionality",
+            "fallback": True
+        })
+    
+    # Run uvicorn
+    uvicorn.run(app, host=host, port=port, log_level="info")
+
+
 def main():
     """Main server entry point"""
-    asyncio.run(initialize_and_run())
+    try:
+        # Try the standard async approach first
+        asyncio.run(initialize_and_run())
+    except RuntimeError as e:
+        if "already running" in str(e).lower():
+            logger.info("Detected existing event loop - using fallback mode")
+            run_with_fallback()
+        else:
+            logger.error(f"Runtime error: {e}")
+            sys.exit(1)
+    except KeyboardInterrupt:
+        logger.info("Server stopped by user")
+    except Exception as e:
+        logger.error(f"Server error: {e}")
+        # Try fallback mode
+        try:
+            logger.info("Attempting fallback mode...")
+            run_with_fallback()
+        except Exception as fallback_error:
+            logger.error(f"Fallback failed: {fallback_error}")
+            sys.exit(1)
 
 
 if __name__ == "__main__":

@@ -12,6 +12,7 @@ setuptools
 # Production server dependencies
 uvicorn[standard]>=0.23.0
 gunicorn>=21.0.0
+fastapi>=0.104.0
 
 # Optional: For better logging and monitoring
 structlog>=23.0.0
