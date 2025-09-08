@@ -1,0 +1,21 @@
+# Render deployment configuration
+version: "1"
+services:
+  - name: owlet-mcp-server
+    type: web
+    runtime: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements-remote.txt
+    startCommand: python remote_mcp_server.py
+    envVars:
+      - key: PORT
+        generateValue: true
+      - key: HOST
+        value: "0.0.0.0"
+      - key: OWLET_USER
+        sync: false
+      - key: OWLET_PASSWORD
+        sync: false
+      - key: OWLET_REGION
+        value: world

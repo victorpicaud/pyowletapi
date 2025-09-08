@@ -1,0 +1,12 @@
+# Owlet Baby Monitor MCP Server Requirements
+
+# Core MCP server framework
+mcp[cli]>=1.2.0
+
+# Existing pyowletapi dependencies
+aiohttp>=3.8.0
+setuptools
+
+# Additional dependencies for enhanced functionality
+python-dotenv>=1.0.0  # For environment variable management
+asyncio-throttle>=1.0.2  # For rate limiting API calls

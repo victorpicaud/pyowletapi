@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "owlet-monitor": {
+      "command": "python",
+      "args": ["REPLACE_WITH_ABSOLUTE_PATH_TO_mcp_server.py"],
+      "env": {
+        "OWLET_USER": "your_email@example.com",
+        "OWLET_PASSWORD": "your_password",
+        "OWLET_REGION": "world"
+      }
+    }
+  }
+}

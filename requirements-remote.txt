@@ -1,0 +1,17 @@
+# Remote MCP Server Requirements
+# For deployment on hosting platforms like Render, Railway, Heroku, etc.
+
+# Core dependencies
+fastmcp>=0.4.0
+aiohttp>=3.8.0
+python-dotenv>=1.0.0
+
+# Existing pyowletapi dependencies
+setuptools
+
+# Production server dependencies
+uvicorn[standard]>=0.23.0
+gunicorn>=21.0.0
+
+# Optional: For better logging and monitoring
+structlog>=23.0.0
