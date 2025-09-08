@@ -1014,9 +1014,25 @@ async def initialize_and_run():
     
     try:
         # Use FastMCP's built-in run method with SSE transport for OpenAI compatibility
-        await server.run(transport="sse", host=host, port=port)
+        # For deployment environments, handle existing event loops
+        server.run(transport="sse", host=host, port=port)
     except KeyboardInterrupt:
         logger.info("Server stopped by user")
+    except RuntimeError as e:
+        if "Already running asyncio" in str(e):
+            logger.info("Handling existing asyncio context...")
+            # Alternative approach for environments with existing event loops
+            import uvicorn
+            from fastmcp.server.sse import create_sse_app
+            
+            # Create the SSE app manually
+            app = create_sse_app(server)
+            
+            # Run with uvicorn directly
+            uvicorn.run(app, host=host, port=port, log_level="info")
+        else:
+            logger.error(f"Server error: {e}")
+            raise
     except Exception as e:
         logger.error(f"Server error: {e}")
         raise
@@ -1025,10 +1041,10 @@ async def initialize_and_run():
         await cleanup()
 
 
-async def main():
+def main():
     """Main server entry point"""
-    await initialize_and_run()
+    asyncio.run(initialize_and_run())
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
